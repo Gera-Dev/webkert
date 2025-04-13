@@ -38,7 +38,8 @@ Az alkalmazás a következő komponensekre van felosztva, amelyek egyike sem hal
 - `register.component.ts/html`
 
 ### Reszponzív, mobile-first felület
-- A profile.component.css fájlban (82-104. sor) található media query-k biztosítják a reszponzív megjelenést:
+- Az alkalmazás Mobile-first megközelítéssel lett fejlesztve, ezt garantálják a Material elemek, illetve a manuális CSS felülírások (media query, stb.)
+Például: A profile.component.css fájlban (82-104. sor) található media query-k biztosítják a reszponzív megjelenést:
 ```css
 @media (min-width: 768px) {
   .meters-list {
