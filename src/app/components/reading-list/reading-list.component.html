@@ -1,0 +1,145 @@
+<div class="reading-list-container">
+  <h1>Mérőóra leolvasások</h1>
+
+  @if (loading) {
+    <div class="loading-container">
+      <mat-spinner [diameter]="40"></mat-spinner>
+      <p>Adatok betöltése...</p>
+    </div>
+  }
+
+  @if (!loading) {
+    <div class="content-container">
+      <!-- Fejléc -->
+      <div class="header-actions">
+        <h2>Korábbi leolvasások</h2>
+        <div class="action-buttons">
+          <button mat-raised-button color="primary" [routerLink]="['/meter-reading']">
+            <mat-icon>add_circle</mat-icon>
+            Új leolvasás
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobil nézet kártya alapú lista -->
+      <div class="mobile-card-list">
+        @for (reading of readings; track reading.id) {
+          <mat-card class="reading-card">
+            <mat-card-content>
+              <div class="reading-header">
+                <div class="reading-date">
+                  <mat-icon>event</mat-icon>
+                  <span>{{reading.readingDate | hungarianDate}}</span>
+                </div>
+                <div class="reading-status">
+                  <mat-chip [ngClass]="getStatusClass(reading.status)">
+                    {{getStatusText(reading.status)}}
+                  </mat-chip>
+                </div>
+              </div>
+              
+              <div class="meter-info">
+                <p><strong>Cím:</strong> {{getMeterAddress(reading.meterId)}}</p>
+                <p><strong>Sorozatszám:</strong> {{getMeterSerialNumber(reading.meterId)}}</p>
+              </div>
+              
+              <div class="reading-details">
+                <div class="reading-value">
+                  <mat-icon>speed</mat-icon>
+                  <span><strong>Mérőállás:</strong> {{reading.reading}} m³</span>
+                </div>
+                
+                @if (reading.consumption !== undefined) {
+                  <div class="consumption-value">
+                    <mat-icon>trending_up</mat-icon>
+                    <span><strong>Fogyasztás:</strong> {{reading.consumption}} m³</span>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        @if (readings.length === 0) {
+          <div class="no-data">
+            <mat-icon>info</mat-icon>
+            <p>Még nincs rögzített leolvasás.</p>
+          </div>
+        }
+      </div>
+
+      <!-- Asztali nézet táblázat -->
+      <div class="desktop-table">
+        <table mat-table [dataSource]="readings" matSort class="readings-table">
+          
+          <!-- Dátum oszlop -->
+          <ng-container matColumnDef="readingDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Dátum </th>
+            <td mat-cell *matCellDef="let reading"> 
+              {{reading.readingDate | hungarianDate}} 
+            </td>
+          </ng-container>
+
+          <!-- Gázóra információ oszlop -->
+          <ng-container matColumnDef="meterInfo">
+            <th mat-header-cell *matHeaderCellDef> Gázóra </th>
+            <td mat-cell *matCellDef="let reading">
+              <div class="meter-info-cell">
+                <div class="address">{{getMeterAddress(reading.meterId)}}</div>
+                <div class="serial">{{getMeterSerialNumber(reading.meterId)}}</div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Leolvasás érték oszlop -->
+          <ng-container matColumnDef="reading">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Mérőállás </th>
+            <td mat-cell *matCellDef="let reading"> {{reading.reading}} m³ </td>
+          </ng-container>
+
+          <!-- Fogyasztás oszlop -->
+          <ng-container matColumnDef="consumption">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Fogyasztás </th>
+            <td mat-cell *matCellDef="let reading"> 
+              @if (reading.consumption !== undefined) {
+                <span>{{reading.consumption}} m³</span>
+              } @else {
+                <span>-</span>
+              }
+            </td>
+          </ng-container>
+
+          <!-- Státusz oszlop -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef> Státusz </th>
+            <td mat-cell *matCellDef="let reading">
+              <mat-chip [ngClass]="getStatusClass(reading.status)">
+                {{getStatusText(reading.status)}}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Műveletek oszlop -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef> Műveletek </th>
+            <td mat-cell *matCellDef="let reading">
+              <button mat-icon-button color="primary" matTooltip="Részletek megtekintése">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+
+        @if (readings.length === 0) {
+          <div class="no-data">
+            <mat-icon>info</mat-icon>
+            <p>Még nincs rögzített leolvasás.</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

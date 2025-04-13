@@ -1,0 +1,157 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Fejléc stílusok */
+.header {
+  background-color: #3f51b5;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.logo mat-icon {
+  margin-right: 0.5rem;
+  font-size: 1.75rem;
+  height: 1.75rem;
+  width: 1.75rem;
+}
+
+/* Asztali nézet navigáció */
+.desktop-nav {
+  display: none;
+}
+
+.desktop-nav ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.desktop-nav li {
+  margin: 0 0.5rem;
+}
+
+.desktop-nav a {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.desktop-nav a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.desktop-nav a.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  font-weight: 500;
+}
+
+.desktop-nav mat-icon {
+  margin-right: 0.5rem;
+}
+
+/* Mobil menü gomb */
+.menu-button {
+  color: white;
+}
+
+/* Mobil nézet menü */
+.mobile-menu {
+  display: none;
+  background-color: #3f51b5;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.mobile-menu.open {
+  display: block;
+  max-height: 500px;
+}
+
+.mobile-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mobile-menu a {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  color: white;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-menu a.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  font-weight: 500;
+}
+
+.mobile-menu mat-icon {
+  margin-right: 1rem;
+}
+
+/* Fő tartalom */
+.main-content {
+  flex: 1;
+  padding: 1rem;
+}
+
+/* Lábléc */
+.footer {
+  background-color: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
+  padding: 1rem;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+  color: #666;
+}
+
+/* Reszponzív beállítások */
+@media (min-width: 768px) {
+  .desktop-nav {
+    display: block;
+  }
+  
+  .menu-button {
+    display: none;
+  }
+  
+  .mobile-menu {
+    display: none !important;
+  }
+}

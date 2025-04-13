@@ -1,0 +1,77 @@
+<div class="statistics-container">
+  <h1>Fogyasztási statisztikák</h1>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner [diameter]="40"></mat-spinner>
+    <p>Adatok betöltése...</p>
+  </div>
+
+  <div *ngIf="!loading" class="content-container">
+    <!-- Szűrési lehetőségek -->
+    <mat-card class="filter-card">
+      <mat-card-content>
+        <form [formGroup]="filterForm" class="filter-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Gázóra kiválasztása</mat-label>
+            <mat-select formControlName="meterId">
+              <mat-option value="">Összes gázóra</mat-option>
+              <mat-option *ngFor="let meter of gasMeters" [value]="meter.id">
+                {{ meter.address }} ({{ meter.serialNumber }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Statisztika tartalom -->
+    <div class="stats-content">
+      <div class="row">
+        <!-- Összefoglaló statisztika kártya - Szülő-gyermek kapcsolat bemutató -->
+        <!-- @Input adatátvitel a summary komponensnek -->
+        <!-- @Output eseménykezelés a gyermek komponenstől -->
+        <app-consumption-summary 
+          [data]="monthlySummary"
+          [title]="'Havi fogyasztás összesítő'"
+          (exportData)="onExportData($event)"
+          (detailView)="onDetailView($event)">
+        </app-consumption-summary>
+      </div>
+
+      <!-- Statisztikai adatok -->
+      <div *ngIf="selectedMeterReadings.length > 0" class="row">
+        <mat-card class="stats-card">
+          <mat-card-header>
+            <mat-card-title>Fogyasztási adatok</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <div class="stats-value">{{ getTotalConsumption() | number:'1.1-1' }} m³</div>
+                <div class="stats-label">Összes fogyasztás</div>
+              </div>
+              
+              <div class="stats-item">
+                <div class="stats-value">{{ getAverageConsumption() | number:'1.1-1' }} m³</div>
+                <div class="stats-label">Átlagos fogyasztás</div>
+              </div>
+              
+              <div class="stats-item">
+                <div class="stats-value">{{ selectedMeterReadings.length }}</div>
+                <div class="stats-label">Leolvasások száma</div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+      
+      <!-- Nincs adat üzenet -->
+      <div *ngIf="selectedMeterReadings.length === 0" class="row">
+        <div class="no-data">
+          <mat-icon>info</mat-icon>
+          <p>Nincs elérhető fogyasztási adat.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

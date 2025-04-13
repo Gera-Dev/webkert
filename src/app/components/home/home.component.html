@@ -1,0 +1,139 @@
+<div class="home-container">
+  <h1>GázŐr</h1>
+
+  @if (loading) {
+    <div class="loading-container">
+      <mat-icon>hourglass_empty</mat-icon>
+      <p>Adatok betöltése...</p>
+    </div>
+  }
+
+  @if (!loading) {
+    <div class="dashboard-container">
+      <!-- Gázórák szekció -->
+      <section class="meters-section">
+        <mat-card class="section-card">
+          <mat-card-header>
+            <mat-card-title>Az Ön gázórái</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (gasMeters.length === 0) {
+              <div class="no-data">
+                <p>Még nincs regisztrálva gázóra.</p>
+                <button mat-raised-button color="primary" [routerLink]="['/meter-reading']">
+                  Gázóra hozzáadása
+                </button>
+              </div>
+            }
+
+            @if (gasMeters.length > 0) {
+              <div class="meter-list">
+                @for (meter of gasMeters; track meter.id) {
+                  <div class="meter-item">
+                    <mat-card class="meter-card">
+                      <mat-card-content>
+                        <h3>{{meter.address}}</h3>
+                        <p>Sorozatszám: {{meter.serialNumber}}</p>
+                        <p>Utolsó leolvasás: 
+                          @if (meter.lastReadingDate) {
+                            <span>
+                              {{meter.lastReadingDate | hungarianDate}} - {{meter.lastReading}} m³
+                            </span>
+                          } @else {
+                            <span>
+                              Még nincs leolvasás rögzítve
+                            </span>
+                          }
+                        </p>
+                      </mat-card-content>
+                      <mat-card-actions>
+                        <button mat-button color="primary" [routerLink]="['/meter-reading', meter.id]">
+                          <mat-icon>add_circle</mat-icon>
+                          Leolvasás
+                        </button>
+                      </mat-card-actions>
+                    </mat-card>
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <!-- Legutóbbi leolvasások szekció -->
+      <section class="readings-section">
+        <mat-card class="section-card">
+          <mat-card-header>
+            <mat-card-title>Legutóbbi leolvasások</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (recentReadings.length === 0) {
+              <div class="no-data">
+                <p>Még nincs rögzítve leolvasás.</p>
+              </div>
+            }
+
+            @if (recentReadings.length > 0) {
+              <div class="readings-list">
+                @for (reading of recentReadings; track reading.id) {
+                  <div class="reading-item">
+                    <mat-card class="reading-card">
+                      <mat-card-content>
+                        <div class="reading-info">
+                          <div class="reading-date">
+                            <mat-icon>event</mat-icon>
+                            <span>{{reading.readingDate | hungarianDate}}</span>
+                          </div>
+                          <div class="reading-value">
+                            <mat-icon>speed</mat-icon>
+                            <span>{{reading.reading}} m³</span>
+                          </div>
+                          <div class="reading-status" [ngClass]="reading.status">
+                            <mat-icon>{{
+                              reading.status === 'verified' ? 'check_circle' : 
+                              (reading.status === 'rejected' ? 'cancel' : 'pending')
+                            }}</mat-icon>
+                            <span>{{
+                              reading.status === 'verified' ? 'Elfogadva' : 
+                              (reading.status === 'rejected' ? 'Elutasítva' : 'Függőben')
+                            }}</span>
+                          </div>
+                        </div>
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="view-all-link">
+              <a mat-button color="accent" [routerLink]="['/reading-list']">
+                <mat-icon>list</mat-icon>
+                Összes leolvasás megtekintése
+              </a>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <!-- Gyors műveletek szekció -->
+      <section class="quick-actions">
+        <button mat-raised-button color="primary" [routerLink]="['/meter-reading']">
+          <mat-icon>add_circle</mat-icon>
+          Új leolvasás rögzítése
+        </button>
+        
+        <button mat-raised-button color="accent" [routerLink]="['/statistics']">
+          <mat-icon>bar_chart</mat-icon>
+          Statisztikák megtekintése
+        </button>
+        
+        <button mat-raised-button color="warn" [routerLink]="['/profile']">
+          <mat-icon>account_circle</mat-icon>
+          Profilom kezelése
+        </button>
+      </section>
+    </div>
+  }
+</div>

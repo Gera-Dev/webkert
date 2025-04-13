@@ -1,0 +1,105 @@
+.statistics-container {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  color: #3f51b5;
+  margin-bottom: 1.5rem;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+}
+
+.loading-container p {
+  margin-top: 1rem;
+  color: #3f51b5;
+}
+
+.filter-card {
+  margin-bottom: 1.5rem;
+}
+
+.filter-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.stats-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.row {
+  width: 100%;
+}
+
+.stats-card {
+  width: 100%;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.stats-item {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+}
+
+.stats-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #3f51b5;
+}
+
+.stats-label {
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  color: #666;
+}
+
+.no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+  color: #666;
+  text-align: center;
+}
+
+.no-data mat-icon {
+  font-size: 48px;
+  height: 48px;
+  width: 48px;
+  margin-bottom: 1rem;
+  color: #3f51b5;
+}
+
+/* Tablet és nagyobb méretű kijelző */
+@media (min-width: 768px) {
+  .filter-form {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}

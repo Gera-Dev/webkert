@@ -1,0 +1,56 @@
+<mat-card class="summary-card">
+  <mat-card-header>
+    <mat-card-title>{{ title }}
+      <span *ngIf="getTrend() === 'up'" class="trend-badge up">
+        <mat-icon>trending_up</mat-icon>
+      </span>
+      <span *ngIf="getTrend() === 'down'" class="trend-badge down">
+        <mat-icon>trending_down</mat-icon>
+      </span>
+    </mat-card-title>
+  </mat-card-header>
+  
+  <mat-card-content>
+    <div *ngIf="data.length === 0" class="no-data">
+      <p>Nincs elérhető fogyasztási adat.</p>
+    </div>
+    
+    <div *ngIf="data.length > 0" class="summary-content">
+      <div class="total-consumption">
+        <div class="label">Összes fogyasztás</div>
+        <div class="value">{{ totalConsumption | number:'1.1-1' }} m³</div>
+      </div>
+      
+      <div class="highlights">
+        <div class="highlight-item max">
+          <div class="highlight-label">Legnagyobb fogyasztás</div>
+          <div class="highlight-value">{{ maxConsumption | number:'1.1-1' }} m³</div>
+          <div class="highlight-month">{{ maxConsumptionMonth }}</div>
+        </div>
+        
+        <div class="highlight-item min" *ngIf="minConsumptionMonth">
+          <div class="highlight-label">Legkisebb fogyasztás</div>
+          <div class="highlight-value">{{ minConsumption | number:'1.1-1' }} m³</div>
+          <div class="highlight-month">{{ minConsumptionMonth }}</div>
+        </div>
+      </div>
+      
+      <div class="monthly-data">
+        <div class="month-heading">Havi adatok</div>
+        <div class="month-list">
+          <div *ngFor="let item of data" class="month-item">
+            <div class="month-name" (click)="onDetailClick(item.month)">{{ item.month }}</div>
+            <div class="month-consumption">{{ item.consumption | number:'1.1-1' }} m³</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </mat-card-content>
+  
+  <mat-card-actions *ngIf="data.length > 0">
+    <button mat-button color="primary" (click)="onExportClick()">
+      <mat-icon>file_download</mat-icon>
+      Exportálás
+    </button>
+  </mat-card-actions>
+</mat-card>
