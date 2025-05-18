@@ -8,4 +8,5 @@ export interface User {
   photoURL?: string;
   createdAt: Date;
   lastLogin?: Date;
+  active: boolean;
 }

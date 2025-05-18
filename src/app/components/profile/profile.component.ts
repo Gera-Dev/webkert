@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ChangeDetectorRef, NgZone, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -9,13 +9,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatDividerModule } from '@angular/material/divider';
-
-import { DummyDataService } from '../../shared/services/dummy-data.service';
+import { GasMeterService } from '../../shared/services/gas-meter.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { User } from '../../shared/models/user.model';
 import { GasMeter } from '../../shared/models/gas-meter.model';
 import { HungarianDatePipe } from '../../shared/pipes/hungarian-date.pipe';
-
+import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-profile',
   standalone: true,
@@ -35,7 +34,7 @@ import { HungarianDatePipe } from '../../shared/pipes/hungarian-date.pipe';
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.css']
 })
-export class ProfileComponent implements OnInit, AfterViewInit {
+export class ProfileComponent implements OnInit, AfterViewInit, OnDestroy {
   profileForm!: FormGroup;
   meterForm!: FormGroup;
   loading = true;
@@ -44,24 +43,32 @@ export class ProfileComponent implements OnInit, AfterViewInit {
   gasMeters: GasMeter[] = [];
   errorMessage: string | null = null;
   userId: string | null = null;
-
+  private metersSubscription?: Subscription;
+  private userSubscription?: Subscription;
   constructor(
     private fb: FormBuilder,
-    private dummyDataService: DummyDataService,
+    private gasMeterService: GasMeterService,
     private authService: AuthService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {}
-
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): void {
     this.initForms();
-    await this.loadUserData();
+    this.loadUserData();
   }
-
+  ngOnDestroy(): void {
+    
+    if (this.metersSubscription) {
+      this.metersSubscription.unsubscribe();
+    }
+    if (this.userSubscription) {
+      this.userSubscription.unsubscribe();
+    }
+  }
   ngAfterViewInit(): void {
-    // Az Angular Material ResizeObserver problémáinak javítása
-    // Késleltetett detektálás a stabil megjelenítéshez
+    
+    
     this.ngZone.runOutsideAngular(() => {
       setTimeout(() => {
         this.ngZone.run(() => {
@@ -70,14 +77,12 @@ export class ProfileComponent implements OnInit, AfterViewInit {
       }, 100);
     });
   }
-
   initForms(): void {
     this.profileForm = this.fb.group({
       displayName: ['', Validators.required],
       phoneNumber: ['', Validators.pattern('^[+]?[0-9]{11,12}$')],
       address: ['', Validators.required],
     });
-
     this.meterForm = this.fb.group({
       serialNumber: ['', Validators.required],
       address: ['', Validators.required],
@@ -85,126 +90,136 @@ export class ProfileComponent implements OnInit, AfterViewInit {
       installationDate: [new Date(), Validators.required]
     });
   }
-
-  async loadUserData(): Promise<void> {
-    try {
-      this.userId = this.authService.getCurrentUserId();
-      
-      if (!this.userId) {
-        this.errorMessage = 'Nem vagy bejelentkezve. Kérlek jelentkezz be az adatok megtekintéséhez.';
-        this.loading = false;
-        return;
-      }
-      
-      console.log('Adatok betöltése a következő felhasználóhoz:', this.userId);
-      
-      // Párhuzamosan lekérjük a felhasználói adatokat és a gázórákat
-      const [userData, meters] = await Promise.all([
-        this.dummyDataService.getUserById(this.userId),
-        this.dummyDataService.getGasMeters(this.userId)
-      ]);
-      
-      if (userData) {
-        this.user = userData as User;
-        this.profileForm.patchValue({
-          displayName: this.user.displayName || '',
-          phoneNumber: this.user.phoneNumber || '',
-          address: this.user.address || ''
-        });
-      }
-      
-      this.gasMeters = meters;
-      console.log(`Betöltött adatok: felhasználó és ${meters.length} gázóra`);
+  loadUserData(): void {
+    this.userId = this.authService.getCurrentUserId();
+    
+    if (!this.userId) {
+      this.errorMessage = 'Nem vagy bejelentkezve. Kérlek jelentkezz be az adatok megtekintéséhez.';
       this.loading = false;
-    } catch (error) {
-      console.error('Hiba a felhasználói adatok betöltése során:', error);
-      this.errorMessage = 'Hiba történt az adatok betöltése során. Kérjük, próbáld újra később.';
-      this.loading = false;
+      return;
     }
+    
+    console.log('Adatok betöltése a következő felhasználóhoz:', this.userId);
+    
+    
+    this.userSubscription = this.authService.currentUser$.subscribe({
+      next: (userData) => {
+        if (userData) {
+          this.user = userData as unknown as User;
+          this.profileForm.patchValue({
+            displayName: this.user.displayName || '',
+            phoneNumber: this.user.phoneNumber || '',
+            address: this.user.address || ''
+          });
+        }
+        
+        
+        this.loadGasMeters();
+      },
+      error: (err) => {
+        console.error('Hiba a felhasználó adatainak betöltésekor:', err);
+        this.errorMessage = 'Hiba történt az adatok betöltése során. Kérjük, próbáld újra később.';
+        this.loading = false;
+      }
+    });
   }
-
-  async onProfileSubmit(): Promise<void> {
+  
+  loadGasMeters(): void {
+    this.metersSubscription = this.gasMeterService.getGasMeters().subscribe({
+      next: (meters) => {
+        this.gasMeters = meters;
+        console.log(`Betöltött adatok: felhasználó és ${meters.length} gázóra`);
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Hiba a gázórák betöltésekor:', err);
+        this.errorMessage = 'Hiba történt a gázórák betöltése során. Kérjük, próbáld újra később.';
+        this.loading = false;
+      }
+    });
+  }
+  onProfileSubmit(): void {
     if (this.profileForm.invalid) {
       this.markFormGroupTouched(this.profileForm);
       return;
     }
-
     if (!this.userId) {
       this.showError('Nincs bejelentkezett felhasználó!');
       return;
     }
-
     this.submitting = true;
-    try {
-      await this.dummyDataService.updateUser(this.userId, this.profileForm.value);
-      this.showSuccess('Profil sikeresen frissítve!');
-    } catch (error) {
-      console.error('Hiba a profil mentése során:', error);
-      this.showError('Nem sikerült menteni a profil adatokat!');
-    } finally {
-      this.submitting = false;
-    }
+    
+    
+    this.authService.updateUserProfile(this.profileForm.value).subscribe({
+      next: () => {
+        this.showSuccess('Profil sikeresen frissítve!');
+        this.submitting = false;
+      },
+      error: (err) => {
+        console.error('Hiba a profil mentése során:', err);
+        this.showError('Nem sikerült menteni a profil adatokat!');
+        this.submitting = false;
+      }
+    });
   }
-
-  async onMeterSubmit(): Promise<void> {
+  onMeterSubmit(): void {
     if (this.meterForm.invalid) {
       this.markFormGroupTouched(this.meterForm);
       return;
     }
-
     if (!this.userId) {
       this.showError('Nincs bejelentkezett felhasználó!');
       return;
     }
-
     this.submitting = true;
-    try {
-      const newMeter: GasMeter = {
-        id: '',
-        userId: this.userId,
-        serialNumber: this.meterForm.value.serialNumber,
-        address: this.meterForm.value.address,
-        location: this.meterForm.value.location || '',
-        installationDate: this.meterForm.value.installationDate,
-        active: true
-      };
-
-      await this.dummyDataService.createGasMeter(newMeter);
-      this.showSuccess('Gázóra sikeresen hozzáadva!');
-      this.meterForm.reset({
-        installationDate: new Date()
-      });
-      // Frissítsük a gázórák listáját
-      await this.loadUserData();
-    } catch (error) {
-      console.error('Hiba a gázóra mentése során:', error);
-      this.showError('Nem sikerült hozzáadni a gázórát!');
-    } finally {
-      this.submitting = false;
-    }
+    
+    const newMeter: Omit<GasMeter, 'id'> = {
+      userId: this.userId,
+      serialNumber: this.meterForm.value.serialNumber,
+      address: this.meterForm.value.address,
+      location: this.meterForm.value.location || '',
+      installationDate: this.meterForm.value.installationDate,
+      active: true
+    };
+    
+    this.gasMeterService.addGasMeter(newMeter).subscribe({
+      next: () => {
+        this.showSuccess('Gázóra sikeresen hozzáadva!');
+        this.meterForm.reset({
+          installationDate: new Date()
+        });
+        
+        this.loadGasMeters();
+        this.submitting = false;
+      },
+      error: (err) => {
+        console.error('Hiba a gázóra mentése során:', err);
+        this.showError('Nem sikerült hozzáadni a gázórát!');
+        this.submitting = false;
+      }
+    });
   }
-
-  async deleteMeter(meterId: string): Promise<void> {
+  deleteMeter(meterId: string): void {
     if (!confirm('Biztosan törölni szeretné ezt a gázórát? Ez a művelet nem vonható vissza!')) {
       return;
     }
-
     if (!this.userId) {
       this.showError('Nincs bejelentkezett felhasználó!');
       return;
     }
-
-    try {
-      await this.dummyDataService.deleteGasMeter(meterId);
-      this.showSuccess('Gázóra sikeresen törölve!');
-      // Frissítsük a gázórák listáját
-      await this.loadUserData();
-    } catch (error) {
-      console.error('Hiba a gázóra törlése során:', error);
-      this.showError('Nem sikerült törölni a gázórát!');
-    }
+    
+    this.gasMeterService.deleteGasMeter(meterId).subscribe({
+      next: () => {
+        this.showSuccess('Gázóra sikeresen törölve!');
+        
+        this.loadGasMeters();
+      },
+      error: (err) => {
+        console.error('Hiba a gázóra törlése során:', err);
+        this.showError('Nem sikerült törölni a gázórát!');
+      }
+    });
   }
-
   markFormGroupTouched(formGroup: FormGroup) {
     Object.values(formGroup.controls).forEach(control => {
       control.markAsTouched();
@@ -213,14 +228,12 @@ export class ProfileComponent implements OnInit, AfterViewInit {
       }
     });
   }
-
   showSuccess(message: string): void {
     this.snackBar.open(message, 'Bezárás', {
       duration: 3000,
       panelClass: ['success-snackbar']
     });
   }
-
   showError(message: string): void {
     this.snackBar.open(message, 'Bezárás', {
       duration: 5000,

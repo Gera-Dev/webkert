@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -11,16 +11,23 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-
-import { DummyDataService } from '../../shared/services/dummy-data.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { GasMeter } from '../../shared/models/gas-meter.model';
 import { MeterReading } from '../../shared/models/meter-reading.model';
-
+import { GasMeterService } from '../../shared/services/gas-meter.service';
+import { MeterReadingService } from '../../shared/services/meter-reading.service';
+import { Subscription } from 'rxjs';
+import { MeterReadingValidatorDirective } from '../../shared/directives/meter-reading-validator.directive';
+import { ConsumptionFormatPipe } from '../../shared/pipes/consumption-format.pipe';
+import { HungarianDatePipe } from '../../shared/pipes/hungarian-date.pipe';
+import { FadeInDirective } from '../../shared/directives/fade-in.directive';
+import { CustomFormControlDirective } from '../../shared/directives/custom-form-control.directive';
+import { InfoTooltipDirective } from '../../shared/directives/info-tooltip.directive';
+import { ReadingConfirmationDirective } from '../../shared/directives/reading-confirmation.directive';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 @Component({
   selector: 'app-meter-reading',
-  standalone: true,
-  imports: [
+  standalone: true,  imports: [
     CommonModule,
     ReactiveFormsModule,
     RouterModule,
@@ -32,12 +39,20 @@ import { MeterReading } from '../../shared/models/meter-reading.model';
     MatDatepickerModule,
     MatNativeDateModule,
     MatIconModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MeterReadingValidatorDirective,
+    ConsumptionFormatPipe,
+    HungarianDatePipe,
+    FadeInDirective,
+    CustomFormControlDirective,
+    InfoTooltipDirective,
+    ReadingConfirmationDirective,
+    TranslatePipe
   ],
   templateUrl: './meter-reading.component.html',
   styleUrls: ['./meter-reading.component.css']
 })
-export class MeterReadingComponent implements OnInit {
+export class MeterReadingComponent implements OnInit, OnDestroy {
   readingForm!: FormGroup;
   gasMeters: GasMeter[] = [];
   loading = true;
@@ -46,16 +61,20 @@ export class MeterReadingComponent implements OnInit {
   selectedMeterId = '';
   userId: string | null = null;
   errorMessage: string | null = null;
-
+  previousReading: number | null = null;
+  lastReadingDate: Date | null = null;
+  
+  private metersSubscription?: Subscription;
+  private readingSubscription?: Subscription;
   constructor(
     private fb: FormBuilder,
-    private dummyDataService: DummyDataService,
+    private gasMeterService: GasMeterService,
+    private meterReadingService: MeterReadingService,
     private authService: AuthService,
     private route: ActivatedRoute,
     private router: Router,
     private snackBar: MatSnackBar
   ) {}
-
   ngOnInit(): void {
     this.initForm();
     this.loadUserData();
@@ -68,8 +87,7 @@ export class MeterReadingComponent implements OnInit {
       }
     });
   }
-
-  // Inicializálja az űrlapot a validátorokkal
+  
   initForm(): void {
     this.readingForm = this.fb.group({
       meterId: ['', Validators.required],
@@ -77,119 +95,168 @@ export class MeterReadingComponent implements OnInit {
       readingDate: [new Date(), Validators.required],
       notes: ['']
     });
-  }
-
-  // Betölti a felhasználó adatait
-  async loadUserData(): Promise<void> {
-    try {
-      this.userId = this.authService.getCurrentUserId();
-      
-      if (!this.userId) {
-        this.errorMessage = 'Nem vagy bejelentkezve. Kérlek jelentkezz be az adatok megtekintéséhez.';
-        this.loading = false;
-        return;
-      }
-      
-      await this.loadGasMeters();
-    } catch (error) {
-      console.error('Hiba történt az adatok betöltésekor:', error);
-      this.loading = false;
-      this.showError('Nem sikerült betölteni az adatokat!');
-    }
-  }
-
-  // Betölti a felhasználó gázóráit
-  async loadGasMeters(): Promise<void> {
-    if (!this.userId) return;
     
-    try {
-      this.gasMeters = await this.dummyDataService.getGasMeters(this.userId);
-      this.loading = false;
-      
-      if (this.selectedMeterId && this.gasMeters.length > 0) {
-        const selectedMeter = this.gasMeters.find(m => m.id === this.selectedMeterId);
-        if (selectedMeter) {
-          this.readingForm.patchValue({ meterId: selectedMeter.id });
-          this.onMeterChange(selectedMeter.id);
-        }
+    
+    this.readingForm.get('meterId')?.valueChanges.subscribe(meterId => {
+      if (meterId) {
+        this.loadPreviousReading(meterId);
       }
-    } catch (error) {
-      console.error('Hiba történt a gázórák betöltésekor:', error);
-      this.loading = false;
-      this.showError('Nem sikerült betölteni a gázórákat!');
+    });
+  }
+  ngOnDestroy(): void {
+    
+    if (this.metersSubscription) {
+      this.metersSubscription.unsubscribe();
+    }
+    if (this.readingSubscription) {
+      this.readingSubscription.unsubscribe();
     }
   }
-
-  // Frissíti az űrlapot a kiválasztott mérőóra alapján
-  async onMeterChange(meterId: string): Promise<void> {
+  
+  
+  loadUserData(): void {
+    this.userId = this.authService.getCurrentUserId();
+    
+    if (!this.userId) {
+      this.errorMessage = 'Nem vagy bejelentkezve. Kérlek jelentkezz be az adatok megtekintéséhez.';
+      this.loading = false;
+      return;
+    }
+    
+    this.loadGasMeters();
+  }
+  
+  loadGasMeters(): void {
+    this.metersSubscription = this.gasMeterService.getGasMeters().subscribe({
+      next: (meters) => {
+        this.gasMeters = meters;
+        this.loading = false;
+        
+        if (this.selectedMeterId && this.gasMeters.length > 0) {
+          const selectedMeter = this.gasMeters.find(m => m.id === this.selectedMeterId);
+          if (selectedMeter) {
+            this.readingForm.patchValue({ meterId: selectedMeter.id });
+            this.onMeterChange(selectedMeter.id);
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Hiba történt a gázórák betöltésekor:', err);
+        this.loading = false;
+        this.showError('Nem sikerült betölteni a gázórákat!');
+      }
+    });
+  }
+  
+  onMeterChange(meterId: string): void {
     if (!meterId) return;
     
-    try {
-      const readings = await this.dummyDataService.getMeterReadingsByMeter(meterId);
-      
-      if (readings && readings.length > 0) {
-        const lastReading = readings[0]; 
-        this.readingForm.get('previousReading')?.setValue(lastReading.reading);
+    this.readingSubscription = this.meterReadingService.getMeterReadings(meterId).subscribe({
+      next: (readings) => {
+        if (readings && readings.length > 0) {
+          const lastReading = readings[0]; 
+          this.readingForm.patchValue({
+            previousReading: lastReading.reading
+          });
+        }
+      },
+      error: (err) => {
+        console.error('Hiba történt a leolvasások betöltésekor:', err);
       }
-    } catch (error) {
-      console.error('Hiba történt a leolvasások betöltésekor:', error);
-    }
-  }
-
-  // Feldolgozza az űrlap beküldését és menti a leolvasást
-  async onSubmit(): Promise<void> {
+    });
+  }  
+  onSubmit(): void {
     if (this.readingForm.invalid) {
       this.markFormGroupTouched(this.readingForm);
       return;
     }
-
     this.submitting = true;
     const formValues = this.readingForm.value;
-
-    try {
-      const meter = this.gasMeters.find(m => m.id === formValues.meterId);
-      
-      if (!meter) {
-        throw new Error('A kiválasztott gázóra nem található!');
-      }
-
-      if (meter.lastReading && formValues.reading <= meter.lastReading) {
-        this.showError('Az új leolvasásnak nagyobbnak kell lennie, mint az előző érték!');
-        this.submitting = false;
-        return;
-      }
-
-      const newReading: MeterReading = {
-        id: '',
-        userId: this.userId!,
-        meterId: formValues.meterId,
-        reading: formValues.reading,
-        previousReading: meter.lastReading || 0,
-        consumption: meter.lastReading ? formValues.reading - meter.lastReading : 0,
-        readingDate: formValues.readingDate,
-        notes: formValues.notes || '',
-        status: 'pending',
-        createdAt: new Date()
-      };
-
-      const docRef = await this.dummyDataService.createMeterReading(newReading);
-      
-      await this.dummyDataService.updateGasMeter(meter.id, {
-        lastReading: formValues.reading,
-        lastReadingDate: formValues.readingDate
-      });
-
-      this.showSuccess('Sikeres leolvasás mentés!');
-      this.router.navigate(['/']);
-    } catch (error) {
-      console.error('Hiba történt a leolvasás mentésekor:', error);
-      this.showError('Nem sikerült menteni a leolvasást!');
-    } finally {
+    const meter = this.gasMeters.find(m => m.id === formValues.meterId);
+    
+    if (!meter) {
+      this.showError('A kiválasztott gázóra nem található!');
       this.submitting = false;
+      return;
     }
+    if (meter.lastReading && formValues.reading <= meter.lastReading) {
+      this.showError('Az új leolvasásnak nagyobbnak kell lennie, mint az előző érték!');
+      this.submitting = false;
+      return;
+    }
+    const newReading: Omit<MeterReading, 'id'> = {
+      userId: this.userId!,
+      meterId: formValues.meterId,
+      reading: Number(formValues.reading),
+      previousReading: meter.lastReading || 0,
+      consumption: meter.lastReading ? Number(formValues.reading) - meter.lastReading : 0,
+      readingDate: formValues.readingDate,
+      notes: formValues.notes || '',
+      status: 'pending',
+      createdAt: new Date()
+    };
+    
+    this.meterReadingService.addMeterReading(newReading).subscribe({
+      next: (readingId) => {
+        console.log('Leolvasás mentve:', readingId);
+        
+        
+        this.gasMeterService.updateGasMeter(meter.id, {
+          lastReading: formValues.reading,
+          lastReadingDate: formValues.readingDate
+        }).subscribe({
+          next: () => {
+            this.showSuccess('Sikeres leolvasás mentés!');
+            this.router.navigate(['/']);
+          },
+          error: (err) => {
+            console.error('Hiba történt a mérőóra frissítésekor:', err);
+            this.showError('A leolvasást elmentettük, de nem sikerült frissíteni a mérőórát!');
+            this.submitting = false;
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Hiba történt a leolvasás mentésekor:', err);
+        this.showError('Nem sikerült menteni a leolvasást!');
+        this.submitting = false;
+      }
+    });
   }
-
-  // Megjelöli az űrlap összes mezőjét megérintettként
+  
+  loadPreviousReading(meterId: string): void {
+    if (!meterId) return;
+    
+    this.readingSubscription?.unsubscribe();
+    this.readingSubscription = this.meterReadingService.getMeterReadings(meterId).subscribe({
+      next: (readings) => {
+        if (readings.length > 0) {
+          
+          const sortedReadings = [...readings].sort((a, b) => 
+            new Date(b.readingDate).getTime() - new Date(a.readingDate).getTime()
+          );
+          
+          
+          const latestReading = sortedReadings[0];
+          this.previousReading = latestReading.reading;
+          this.lastReadingDate = latestReading.readingDate;
+          
+          
+          const today = new Date();
+          this.readingForm.patchValue({ readingDate: today });
+        } else {
+          this.previousReading = null;
+          this.lastReadingDate = null;
+        }
+      },
+      error: (err) => {
+        console.error('Hiba az előző mérőállás betöltésekor:', err);
+        this.errorMessage = 'Nem sikerült betölteni az előző mérőállást.';
+        this.previousReading = null;
+      }
+    });
+  }
+  
   markFormGroupTouched(formGroup: FormGroup) {
     Object.values(formGroup.controls).forEach(control => {
       control.markAsTouched();
@@ -198,16 +265,14 @@ export class MeterReadingComponent implements OnInit {
       }
     });
   }
-
-  // Sikeres üzenetet jelenít meg
+  
   showSuccess(message: string): void {
     this.snackBar.open(message, 'Bezárás', {
       duration: 3000,
       panelClass: ['success-snackbar']
     });
   }
-
-  // Hibaüzenetet jelenít meg
+  
   showError(message: string): void {
     this.snackBar.open(message, 'Bezárás', {
       duration: 5000,

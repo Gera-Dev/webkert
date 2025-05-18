@@ -1,138 +1,156 @@
-import { Injectable } from '@angular/core';
-import { DummyDataService } from './dummy-data.service';
+import { Injectable, inject } from '@angular/core';
 import { User } from '../models/user.model';
-import { BehaviorSubject, Observable } from 'rxjs';
-
+import { BehaviorSubject, Observable, from } from 'rxjs';
+import { switchMap, tap, map, catchError } from 'rxjs/operators';
+import { 
+  Auth, 
+  UserCredential,
+  signInWithEmailAndPassword as firebaseSignIn,
+  createUserWithEmailAndPassword as firebaseCreateUser,
+  signOut as firebaseSignOut,
+  updateProfile as firebaseUpdateProfile
+} from '@angular/fire/auth';
+import { 
+  Firestore, 
+  doc as firebaseDoc,
+  getDoc as firebaseGetDoc,
+  setDoc as firebaseSetDoc,
+  updateDoc as firebaseUpdateDoc,
+  DocumentReference,
+  DocumentSnapshot
+} from '@angular/fire/firestore';
 interface AuthUser {
   id: string;
   email: string;
   displayName?: string;
 }
-
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  // Tároljuk a bejelentkezett felhasználót
   private currentUserSubject: BehaviorSubject<AuthUser | null> = new BehaviorSubject<AuthUser | null>(null);
   public currentUser$: Observable<AuthUser | null> = this.currentUserSubject.asObservable();
   
-  // Tároljuk a bejelentkezési állapotot
   private isAuthenticatedSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   public isAuthenticated$: Observable<boolean> = this.isAuthenticatedSubject.asObservable();
-
-  constructor(private dummyDataService: DummyDataService) {
-    // Ellenőrizzük, van-e már bejelentkezett felhasználó a session storage-ban
-    const savedUser = sessionStorage.getItem('currentUser');
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
-      this.currentUserSubject.next(user);
-      this.isAuthenticatedSubject.next(true);
-    }
-  }
-
-  // Bejelentkezés email és jelszó párossal
-  async login(email: string, password: string): Promise<boolean> {
-    try {
-      // Felhasználó keresése email alapján
-      const user = await this.dummyDataService.getUserByEmail(email);
-      
-      if (user) {
-        // Ellenőrizzük a jelszót
-        if (user.password === password) {
-          // Sikeres bejelentkezés
-          const authUser: AuthUser = {
-            id: user.id,
-            email: user.email,
-            displayName: user.displayName
-          };
-          
-          // Frissítsük az utolsó bejelentkezést
-          await this.dummyDataService.updateUser(user.id, {
-            lastLogin: new Date()
-          });
-          
-          // Tároljuk a bejelentkezett felhasználót
-          this.currentUserSubject.next(authUser);
-          this.isAuthenticatedSubject.next(true);
-          sessionStorage.setItem('currentUser', JSON.stringify(authUser));
-          
-          return true;
-        } else {
-          // Hibás jelszó
-          throw new Error('Hibás email vagy jelszó!');
-        }
+  
+  private auth: Auth = inject(Auth);
+  private firestore: Firestore = inject(Firestore);
+  constructor() {
+    this.auth.onAuthStateChanged(firebaseUser => {
+      if (firebaseUser) {
+        const user: AuthUser = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || undefined
+        };
+        this.currentUserSubject.next(user);
+        this.isAuthenticatedSubject.next(true);
       } else {
-        // Nem létezik ilyen felhasználó
-        throw new Error('Hibás email vagy jelszó!');
-      }
-    } catch (error) {
-      console.error('Bejelentkezési hiba:', error);
-      throw error;
-    }
+        this.currentUserSubject.next(null);
+        this.isAuthenticatedSubject.next(false);      }
+    });
   }
-
-  // Regisztráció email, jelszó és név megadásával
-  async register(email: string, password: string, displayName: string): Promise<boolean> {
-    try {
-      // Ellenőrizzük, hogy létezik-e már ez az email
-      const existingUser = await this.dummyDataService.getUserByEmail(email);
-      
-      if (existingUser) {
-        throw new Error('Ez az email cím már használatban van!');
-      }
-      
-      // Új felhasználó létrehozása
-      const newUser: User = {
-        id: '', // ezt a dummyDataService fogja beállítani
-        email,
-        password, // A jelszót is eltároljuk
-        displayName,
-        createdAt: new Date(),
-        lastLogin: new Date()
-      };
-      
-      // Új felhasználó mentése
-      const result = await this.dummyDataService.createUser(newUser);
-      
-      // Automatikus bejelentkezés regisztráció után
-      const authUser: AuthUser = {
-        id: result.id,
-        email,
-        displayName
-      };
-      
-      this.currentUserSubject.next(authUser);
-      this.isAuthenticatedSubject.next(true);
-      sessionStorage.setItem('currentUser', JSON.stringify(authUser));
-      
-      return true;
-    } catch (error) {
-      console.error('Regisztrációs hiba:', error);
-      throw error;
-    }
+  login(email: string, password: string): Observable<boolean> {
+    return from(firebaseSignIn(this.auth, email, password))
+      .pipe(
+        switchMap((credential: UserCredential) => {
+          const userDocRef = firebaseDoc(this.firestore, 'users', credential.user.uid);
+          return from(firebaseGetDoc(userDocRef)).pipe(
+            switchMap(docSnap => {
+              if (docSnap.exists()) {
+                return from(firebaseUpdateDoc(userDocRef, { lastLogin: new Date() })).pipe(
+                  map(() => true)
+                );
+              } else {
+                const userData: User = {
+                  id: credential.user.uid,
+                  email: credential.user.email || '',
+                  displayName: credential.user.displayName || '',
+                  createdAt: new Date(),
+                  lastLogin: new Date(),
+                  active: true
+                };
+                return from(firebaseSetDoc(userDocRef, userData)).pipe(
+                  map(() => true)
+                );
+              }
+            })
+          );
+        }),
+        catchError(error => {
+          console.error('Bejelentkezési hiba:', error.message);
+          throw error;
+        })      );
   }
-
-  // Kijelentkezés
-  logout(): void {
-    this.currentUserSubject.next(null);
-    this.isAuthenticatedSubject.next(false);
-    sessionStorage.removeItem('currentUser');
+  register(email: string, password: string, displayName: string): Observable<any> {
+    return from(firebaseCreateUser(this.auth, email, password))
+      .pipe(
+        switchMap((credential: UserCredential) => {
+          return from(firebaseUpdateProfile(credential.user, { displayName })).pipe(
+            switchMap(() => {
+              const userDocRef = firebaseDoc(this.firestore, 'users', credential.user.uid);
+              const userData: User = {
+                id: credential.user.uid,
+                email,
+                displayName,
+                createdAt: new Date(),
+                lastLogin: new Date(),
+                active: true
+              };
+              
+              return from(firebaseSetDoc(userDocRef, userData));
+            })
+          );
+        }),
+        catchError(error => {
+          console.error('Regisztrációs hiba:', error.message);
+          throw error;
+        })      );
   }
-
-  // Jelenlegi felhasználó azonosítójának lekérdezése
+  logout(): Observable<void> {
+    return from(firebaseSignOut(this.auth)).pipe(
+      tap(() => {
+        this.currentUserSubject.next(null);
+        this.isAuthenticatedSubject.next(false);
+      }),
+      catchError(error => {
+        console.error('Kijelentkezési hiba:', error.message);
+        throw error;
+      })
+    );
+  }
+  isLoggedIn(): boolean {
+    return this.auth.currentUser !== null;
+  }
+  getCurrentUser(): AuthUser | null {
+    return this.currentUserSubject.getValue();
+  }
   getCurrentUserId(): string | null {
-    const currentUser = this.currentUserSubject.getValue();
-    return currentUser ? currentUser.id : null;
+    const currentUser = this.getCurrentUser();
+    return currentUser ? currentUser.id : null;  }
+  updateUserInfo(userId: string, userData: Partial<User>): Observable<void> {
+    const userDocRef = firebaseDoc(this.firestore, 'users', userId);
+    return from(firebaseUpdateDoc(userDocRef, { ...userData }));
   }
-
-  // Teljes felhasználói adatok lekérdezése
-  async getCurrentUserDetails(): Promise<User | null> {
-    const userId = this.getCurrentUserId();
-    if (!userId) {
-      return null;
+  
+  updateUserProfile(profileData: Partial<User>): Observable<void> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser || !currentUser.id) {
+      throw new Error('Nincs bejelentkezett felhasználó!');
     }
     
-    return await this.dummyDataService.getUserById(userId);
+    return this.updateUserInfo(currentUser.id, profileData);
+  }
+  getUserDetails(userId: string): Observable<User | null> {
+    const userDocRef = firebaseDoc(this.firestore, 'users', userId);
+    return from(firebaseGetDoc(userDocRef)).pipe(
+      map(docSnap => {
+        if (docSnap.exists()) {
+          return docSnap.data() as User;
+        }
+        return null;
+      })
+    );
   }
 }

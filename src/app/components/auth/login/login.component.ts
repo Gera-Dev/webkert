@@ -9,7 +9,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../shared/services/auth.service';
-
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -28,7 +27,6 @@ import { AuthService } from '../../../shared/services/auth.service';
 export class LoginComponent {
   loginForm: FormGroup;
   isLoading = false;
-
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
@@ -40,43 +38,44 @@ export class LoginComponent {
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
   }
-
   onSubmit(): void {
     if (this.loginForm.valid) {
       this.isLoading = true;
       const { email, password } = this.loginForm.value;
       
       this.authService.login(email, password)
-        .then(() => {
-          // Átirányítás a főoldalra (javítva "/" útvonalra)
-          this.router.navigate(['/']);
-          
-          // Sikerüzenet megjelenítése
-          this.snackBar.open('Sikeres bejelentkezés!', 'Bezár', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom'
-          });
-        })
-        .catch(error => {
-          this.snackBar.open(error.message || 'Sikertelen bejelentkezés', 'Bezár', {
-            duration: 5000,
-            horizontalPosition: 'center',
-            verticalPosition: 'bottom'
-          });
-        })
-        .finally(() => {
-          this.isLoading = false;
+        .subscribe({
+          next: () => {
+            
+            this.router.navigate(['/']);
+            
+            
+            this.snackBar.open('Sikeres bejelentkezés!', 'Bezár', {
+              duration: 3000,
+              horizontalPosition: 'center',
+              verticalPosition: 'bottom'
+            });
+          },
+          error: (error) => {
+            this.snackBar.open(error.message || 'Sikertelen bejelentkezés', 'Bezár', {
+              duration: 5000,
+              horizontalPosition: 'center',
+              verticalPosition: 'bottom'
+            });
+            this.isLoading = false;
+          },
+          complete: () => {
+            this.isLoading = false;
+          }
         });
     } else {
-      // Jelöljük az összes form controlt hibásnak
+      
       Object.keys(this.loginForm.controls).forEach(key => {
         const control = this.loginForm.get(key);
         control?.markAsTouched();
       });
     }
   }
-
   navigateToRegister(): void {
     this.router.navigate(['/register']);
   }

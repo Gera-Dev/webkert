@@ -1,16 +1,13 @@
-<div class="home-container">
-  <h1>GázŐr</h1>
-
+<div class="home-container">      <h1 appPulse [scale]="1.05" [duration]="2000">GázŐr</h1>
   @if (loading) {
     <div class="loading-container">
       <mat-icon>hourglass_empty</mat-icon>
       <p>Adatok betöltése...</p>
     </div>
   }
-
   @if (!loading) {
     <div class="dashboard-container">
-      <!-- Gázórák szekció -->
+      
       <section class="meters-section">
         <mat-card class="section-card">
           <mat-card-header>
@@ -25,7 +22,6 @@
                 </button>
               </div>
             }
-
             @if (gasMeters.length > 0) {
               <div class="meter-list">
                 @for (meter of gasMeters; track meter.id) {
@@ -60,8 +56,7 @@
           </mat-card-content>
         </mat-card>
       </section>
-
-      <!-- Legutóbbi leolvasások szekció -->
+      
       <section class="readings-section">
         <mat-card class="section-card">
           <mat-card-header>
@@ -73,7 +68,6 @@
                 <p>Még nincs rögzítve leolvasás.</p>
               </div>
             }
-
             @if (recentReadings.length > 0) {
               <div class="readings-list">
                 @for (reading of recentReadings; track reading.id) {
@@ -106,7 +100,6 @@
                 }
               </div>
             }
-
             <div class="view-all-link">
               <a mat-button color="accent" [routerLink]="['/reading-list']">
                 <mat-icon>list</mat-icon>
@@ -116,8 +109,7 @@
           </mat-card-content>
         </mat-card>
       </section>
-
-      <!-- Gyors műveletek szekció -->
+      
       <section class="quick-actions">
         <button mat-raised-button color="primary" [routerLink]="['/meter-reading']">
           <mat-icon>add_circle</mat-icon>

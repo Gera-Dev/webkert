@@ -1,50 +1,50 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from './components/home/home.component';
-import { MeterReadingComponent } from './components/meter-reading/meter-reading.component';
-import { ReadingListComponent } from './components/reading-list/reading-list.component';
-import { StatisticsComponent } from './components/statistics/statistics.component';
-import { ProfileComponent } from './components/profile/profile.component';
-import { LoginComponent } from './components/auth/login/login.component';
-import { RegisterComponent } from './components/auth/register/register.component';
 import { authGuard } from './shared/guards/auth.guard';
-
 export const routes: Routes = [
-  // Védett útvonalak
   { 
-    path: '', 
-    component: HomeComponent,
+    path: '',
+    loadComponent: () => import('./components/home/home.component').then(m => m.HomeComponent),
     canActivate: [authGuard]
   },
   { 
-    path: 'meter-reading', 
-    component: MeterReadingComponent,
+    path: 'meter-reading',
+    loadComponent: () => import('./components/meter-reading/meter-reading.component').then(m => m.MeterReadingComponent),
     canActivate: [authGuard]
   },
   { 
-    path: 'meter-reading/:id', 
-    component: MeterReadingComponent,
+    path: 'meter-reading/:id',
+    loadComponent: () => import('./components/meter-reading/meter-reading.component').then(m => m.MeterReadingComponent),
     canActivate: [authGuard] 
   },
   { 
-    path: 'reading-list', 
-    component: ReadingListComponent,
+    path: 'reading-list',
+    loadComponent: () => import('./components/reading-list/reading-list.component').then(m => m.ReadingListComponent),
     canActivate: [authGuard] 
   },
   { 
-    path: 'statistics', 
-    component: StatisticsComponent,
+    path: 'statistics',
+    loadComponent: () => import('./components/statistics/statistics.component').then(m => m.StatisticsComponent),
+    canActivate: [authGuard]
+  },  
+  { 
+    path: 'profile',
+    loadComponent: () => import('./components/profile/profile.component').then(m => m.ProfileComponent),
     canActivate: [authGuard]
   },
   { 
-    path: 'profile', 
-    component: ProfileComponent,
+    path: 'settings',
+    loadComponent: () => import('./components/settings/settings.component').then(m => m.SettingsComponent),
     canActivate: [authGuard]
   },
   
-  // Nyilvános útvonalak
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
+  { 
+    path: 'login',
+    loadComponent: () => import('./components/auth/login/login.component').then(m => m.LoginComponent)
+  },
+  { 
+    path: 'register',
+    loadComponent: () => import('./components/auth/register/register.component').then(m => m.RegisterComponent)
+  },
   
-  // Bármely más útvonal a login oldalra irányít
   { path: '**', redirectTo: 'login' }
 ];

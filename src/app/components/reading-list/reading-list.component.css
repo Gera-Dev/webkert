@@ -35,7 +35,7 @@ h1 {
   margin-bottom: 1rem;
 }
 
-/* Mobil nézet kártya lista */
+
 .mobile-card-list {
   display: flex;
   flex-direction: column;
@@ -93,7 +93,7 @@ h1 {
   color: #3f51b5;
 }
 
-/* Státusz formázások */
+
 .status-pending {
   background-color: #ffc107;
   color: #000;
@@ -109,7 +109,7 @@ h1 {
   color: white;
 }
 
-/* Asztali nézet táblázat */
+
 .desktop-table {
   display: none;
 }

@@ -90,7 +90,7 @@ h1 {
   color: #3f51b5;
 }
 
-/* Tablet és nagyobb méretű kijelző */
+
 @media (min-width: 768px) {
   .filter-form {
     flex-direction: row;

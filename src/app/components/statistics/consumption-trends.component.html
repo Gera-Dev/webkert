@@ -1,0 +1,34 @@
+<div *ngIf="(consumptionTrends && consumptionTrends.length > 0)" class="trends-container" appFadeIn [duration]="500" [delay]="300">
+  <mat-card class="trends-card">
+    <mat-card-header>
+      <mat-card-title>Fogyasztási trendek</mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <div class="trends-grid">
+        <div *ngFor="let trend of consumptionTrends" class="trend-item">
+          <div class="trend-period">
+            <ng-container [ngSwitch]="trend.period">
+              <span *ngSwitchCase="'weekly'">Heti</span>
+              <span *ngSwitchCase="'monthly'">Havi</span>
+              <span *ngSwitchCase="'yearly'">Éves</span>
+            </ng-container>
+          </div>
+          
+          <div class="trend-value" [ngClass]="{'up': trend.trend === 'up', 'down': trend.trend === 'down'}">
+            <mat-icon *ngIf="trend.trend === 'up'">trending_up</mat-icon>
+            <mat-icon *ngIf="trend.trend === 'down'">trending_down</mat-icon>
+            <mat-icon *ngIf="trend.trend === 'stable'">trending_flat</mat-icon>
+            
+            <span>{{ trend.percentage | number:'1.1-1' }}%</span>
+          </div>
+          
+          <div class="trend-details">
+            <div>Előző: {{ trend.previousTotal | consumptionFormat }}</div>
+            <div>Aktuális: {{ trend.currentTotal | consumptionFormat }}</div>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

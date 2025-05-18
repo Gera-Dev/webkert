@@ -1,16 +1,14 @@
 <div class="profile-container">
   <h1>Profil kezelése</h1>
-
   <div *ngIf="loading" class="loading-container">
     <mat-icon>hourglass_empty</mat-icon>
     <p>Adatok betöltése...</p>
   </div>
-
   <div *ngIf="!loading" class="content-container">
     <mat-card class="profile-card">
-      <!-- animationDuration csökkentése és dynamicHeight eltávolítása a ResizeObserver problémák kezelésére -->
+      
       <mat-tab-group animationDuration="0ms" [disablePagination]="true">
-        <!-- Felhasználói adatok szerkesztése -->
+        
         <mat-tab label="Felhasználói adatok">
           <div class="tab-content">
             <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()" class="profile-form">
@@ -22,7 +20,6 @@
                   Név megadása kötelező
                 </mat-error>
               </mat-form-field>
-
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Telefonszám</mat-label>
                 <input matInput formControlName="phoneNumber" placeholder="+36701234567">
@@ -31,7 +28,6 @@
                   Érvénytelen formátum. Helyes formátum: +36701234567
                 </mat-error>
               </mat-form-field>
-
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Lakcím</mat-label>
                 <input matInput formControlName="address" placeholder="1234 Város, Utca 1.">
@@ -40,7 +36,6 @@
                   Lakcím megadása kötelező
                 </mat-error>
               </mat-form-field>
-
               <div class="button-row">
                 <button mat-raised-button color="primary" type="submit" [disabled]="submitting || profileForm.invalid">
                   <mat-icon>save</mat-icon>
@@ -50,8 +45,7 @@
             </form>
           </div>
         </mat-tab>
-
-        <!-- Gázórák kezelése -->
+        
         <mat-tab label="Gázórák kezelése">
           <div class="tab-content">
             <h2>Új gázóra hozzáadása</h2>
@@ -63,7 +57,6 @@
                   Sorozatszám megadása kötelező
                 </mat-error>
               </mat-form-field>
-
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Felszerelés címe</mat-label>
                 <input matInput formControlName="address" placeholder="1234 Város, Utca 1.">
@@ -71,12 +64,10 @@
                   Cím megadása kötelező
                 </mat-error>
               </mat-form-field>
-
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Elhelyezkedés (opcionális)</mat-label>
                 <input matInput formControlName="location" placeholder="pl. pincében, konyhában">
               </mat-form-field>
-
               <div class="button-row">
                 <button mat-raised-button color="primary" type="submit" [disabled]="submitting || meterForm.invalid">
                   <mat-icon>add_circle</mat-icon>
@@ -84,15 +75,12 @@
                 </button>
               </div>
             </form>
-
             <mat-divider></mat-divider>
-
             <h2>Regisztrált gázórák</h2>
             <div class="meters-list">
               <div *ngIf="gasMeters.length === 0" class="no-data">
                 <p>Még nincs regisztrált gázóra.</p>
               </div>
-
               <div *ngFor="let meter of gasMeters" class="meter-item">
                 <mat-card class="meter-card">
                   <mat-card-content>

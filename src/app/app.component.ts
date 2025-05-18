@@ -5,7 +5,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from './shared/services/auth.service';
-
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -31,7 +30,7 @@ export class AppComponent implements OnInit {
   constructor(private authService: AuthService) {}
   
   ngOnInit(): void {
-    // Be van-e lépve a felhasználó
+    
     this.authService.isAuthenticated$.subscribe(isAuthenticated => {
       this.isAuthenticated = isAuthenticated;
     });
@@ -48,8 +47,15 @@ export class AppComponent implements OnInit {
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
   }
-  
-  logout(): void {
-    this.authService.logout();
+    logout(): void {
+    this.authService.logout().subscribe({
+      next: () => {
+        
+        console.log('Sikeres kijelentkezés');
+      },
+      error: (error) => {
+        console.error('Kijelentkezési hiba:', error);
+      }
+    });
   }
 }

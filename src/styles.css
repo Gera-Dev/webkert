@@ -1,4 +1,4 @@
-/* You can add global styles to this file, and also import other style files */
+
 @import '@angular/material/prebuilt-themes/indigo-pink.css';
 
 html, body {
@@ -7,7 +7,7 @@ html, body {
   font-family: Roboto, "Helvetica Neue", sans-serif;
 }
 
-/* Általános stílusok */
+
 * {
   box-sizing: border-box;
 }
@@ -16,7 +16,7 @@ body {
   background-color: #f5f5f5;
 }
 
-/* Material Design testreszabás */
+
 .mat-mdc-form-field {
   width: 100%;
 }
@@ -25,7 +25,7 @@ body {
   margin-bottom: 1rem;
 }
 
-/* Sikeres és hiba visszajelzés stílusai */
+
 .success-snackbar {
   --mdc-snackbar-container-color: #4caf50;
   --mdc-snackbar-supporting-text-color: white;
@@ -38,7 +38,7 @@ body {
   --mat-mdc-snack-bar-button-color: white;
 }
 
-/* Loader és hibaüzenetek közös stílusai */
+
 .loading-container {
   display: flex;
   flex-direction: column;

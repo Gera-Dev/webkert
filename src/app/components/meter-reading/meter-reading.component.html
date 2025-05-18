@@ -1,13 +1,10 @@
-<div class="reading-container">
-  <h1>Gázóra leolvasás</h1>
-
+<div class="reading-container">  <h1>{{ 'meter reading' | translate }}</h1>
   @if (loading) {
     <div class="loading-container">
       <mat-icon>hourglass_empty</mat-icon>
-      <p>Adatok betöltése...</p>
+      <p>{{ 'loading' | translate }}</p>
     </div>
   }
-
   @if (!loading) {
     <mat-card class="reading-card">
       <mat-card-header>
@@ -16,10 +13,9 @@
           Kérjük, adja meg a gázóra aktuális állását
         </mat-card-subtitle>
       </mat-card-header>
-
       <mat-card-content>
         <form [formGroup]="readingForm" (ngSubmit)="onSubmit()" class="reading-form">
-          <!-- Gázóra kiválasztása -->
+          
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Válassza ki a gázórát</mat-label>
             <mat-select formControlName="meterId" (selectionChange)="onMeterChange($event.value)">
@@ -34,30 +30,40 @@
                 Gázóra kiválasztása kötelező
               </mat-error>
             }
-          </mat-form-field>
-
-          <!-- Mérőállás -->
+          </mat-form-field>          
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Gázóra állása (m³)</mat-label>
-            <input matInput type="number" formControlName="reading" min="0" step="0.01">
-            <mat-icon matSuffix>speed</mat-icon>
+            <input matInput type="number" formControlName="reading" min="0" step="0.01"
+                   [appMeterReadingValidator]="previousReading"
+                   appCustomFormControl>
+            <mat-icon matSuffix 
+                      [appInfoTooltip]="'Az aktuális mérőállás értékét m³-ben adja meg. Az értéknek nagyobbnak kell lennie, mint az előző leolvasás.'"
+                      tooltipPosition="right">help_outline</mat-icon>
+            <mat-hint *ngIf="previousReading !== null">Előző mérőállás: {{ previousReading | consumptionFormat }}</mat-hint>
             @if (readingForm.get('reading')?.hasError('required')) {
               <mat-error>
                 Mérőállás megadása kötelező
               </mat-error>
             }
-            @if (readingForm.get('reading')?.hasError('min')) {
+            @if (readingForm.get('reading')?.hasError('min') || readingForm.get('reading')?.hasError('invalidReading')) {
               <mat-error>
                 A mérőállás nem lehet negatív
               </mat-error>
             }
-          </mat-form-field>
-
-          <!-- Leolvasási dátum -->
+            @if (readingForm.get('reading')?.hasError('greaterThanPrevious')) {
+              <mat-error>
+                Az új mérőállásnak nagyobbnak kell lennie, mint az előző
+              </mat-error>
+            }
+          </mat-form-field>          
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Leolvasás dátuma</mat-label>
-            <input matInput [matDatepicker]="picker" formControlName="readingDate">
+            <input matInput [matDatepicker]="picker" formControlName="readingDate"
+                   appCustomFormControl>
             <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-icon matIconSuffix 
+                      [appInfoTooltip]="'Válassza ki a mérőóra leolvasásának dátumát. Új leolvasás esetén alapértelmezetten a mai dátum van beállítva.'"
+                      tooltipPosition="right">help_outline</mat-icon>
             <mat-datepicker #picker></mat-datepicker>
             @if (readingForm.get('readingDate')?.hasError('required')) {
               <mat-error>
@@ -65,17 +71,17 @@
               </mat-error>
             }
           </mat-form-field>
-
-          <!-- Jegyzetek -->
+          
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Jegyzetek (opcionális)</mat-label>
             <textarea matInput formControlName="notes" rows="3"></textarea>
-          </mat-form-field>
-
-          <!-- Gomb sor -->
+          </mat-form-field>          
           <div class="button-row">
             <button mat-button type="button" [routerLink]="['/']">Mégsem</button>
-            <button mat-raised-button color="primary" type="submit" [disabled]="submitting">
+            <button mat-raised-button color="primary" type="submit" [disabled]="submitting"
+                   appReadingConfirmation
+                   [confirmMessage]="'Biztos, hogy szeretné elmenteni ezt a mérőállást? Az érték: ' + readingForm.get('reading')?.value + ' m³'"
+                   [confirmTitle]="'Mérőóra leolvasás megerősítése'">
               <mat-icon>save</mat-icon>
               {{ submitting ? 'Mentés folyamatban...' : 'Mérőállás mentése' }}
             </button>
@@ -83,8 +89,7 @@
         </form>
       </mat-card-content>
     </mat-card>
-
-    <!-- További információk -->
+    
     <mat-card class="info-card">
       <mat-card-header>
         <mat-card-title>Tudnivalók a leolvasásról</mat-card-title>
@@ -100,5 +105,30 @@
         </div>
       </mat-card-content>
     </mat-card>
+    
+    @if (previousReading !== null && selectedMeterId) {
+      <div appFadeIn [duration]="500" [delay]="300" class="previous-reading-info">
+        <mat-card class="info-card">
+          <mat-card-header>
+            <mat-card-title>Előző mérőállás információk</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="info-content">
+              <div class="info-item">
+                <mat-icon>schedule</mat-icon>
+                <span>Utolsó leolvasás dátuma: {{ lastReadingDate | hungarianDate }}</span>
+              </div>
+              <div class="info-item">
+                <mat-icon>speed</mat-icon>
+                <span>Előző mérőállás: {{ previousReading | consumptionFormat }}</span>
+              </div>
+              <div class="info-text">
+                <p>Az új mérőállásnak nagyobbnak kell lennie, mint az előzőnek.</p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    }
   }
 </div>

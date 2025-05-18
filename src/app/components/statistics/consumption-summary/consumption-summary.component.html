@@ -15,32 +15,30 @@
       <p>Nincs elérhető fogyasztási adat.</p>
     </div>
     
-    <div *ngIf="data.length > 0" class="summary-content">
-      <div class="total-consumption">
+    <div *ngIf="data.length > 0" class="summary-content">      <div class="total-consumption" appFadeIn [duration]="500" [delay]="200">
         <div class="label">Összes fogyasztás</div>
-        <div class="value">{{ totalConsumption | number:'1.1-1' }} m³</div>
+        <div class="value">{{ totalConsumption | consumptionFormat:1:'m³':true }}</div>
       </div>
       
       <div class="highlights">
-        <div class="highlight-item max">
+        <div class="highlight-item max" appFadeIn [duration]="500" [delay]="300">
           <div class="highlight-label">Legnagyobb fogyasztás</div>
-          <div class="highlight-value">{{ maxConsumption | number:'1.1-1' }} m³</div>
+          <div class="highlight-value">{{ maxConsumption | consumptionFormat:1:'m³':true }}</div>
           <div class="highlight-month">{{ maxConsumptionMonth }}</div>
         </div>
         
-        <div class="highlight-item min" *ngIf="minConsumptionMonth">
+        <div class="highlight-item min" *ngIf="minConsumptionMonth" appFadeIn [duration]="500" [delay]="400">
           <div class="highlight-label">Legkisebb fogyasztás</div>
-          <div class="highlight-value">{{ minConsumption | number:'1.1-1' }} m³</div>
+          <div class="highlight-value">{{ minConsumption | consumptionFormat:1:'m³':true }}</div>
           <div class="highlight-month">{{ minConsumptionMonth }}</div>
         </div>
       </div>
       
       <div class="monthly-data">
         <div class="month-heading">Havi adatok</div>
-        <div class="month-list">
-          <div *ngFor="let item of data" class="month-item">
+        <div class="month-list">          <div *ngFor="let item of data; let i = index" class="month-item" appFadeIn [duration]="300" [delay]="200 + (i * 50)">
             <div class="month-name" (click)="onDetailClick(item.month)">{{ item.month }}</div>
-            <div class="month-consumption">{{ item.consumption | number:'1.1-1' }} m³</div>
+            <div class="month-consumption">{{ item.consumption | consumptionFormat:1:'m³':true }}</div>
           </div>
         </div>
       </div>
