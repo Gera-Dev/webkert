@@ -1,50 +1,54 @@
 import { Routes } from '@angular/router';
+import { HomeComponent } from './components/home/home.component';
+import { MeterReadingComponent } from './components/meter-reading/meter-reading.component';
+import { ReadingListComponent } from './components/reading-list/reading-list.component';
+import { StatisticsComponent } from './components/statistics/statistics.component';
+import { ProfileComponent } from './components/profile/profile.component';
+import { SettingsComponent } from './components/settings/settings.component';
+import { LoginComponent } from './components/auth/login/login.component';
+import { RegisterComponent } from './components/auth/register/register.component';
 import { authGuard } from './shared/guards/auth.guard';
 export const routes: Routes = [
+  
   { 
-    path: '',
-    loadComponent: () => import('./components/home/home.component').then(m => m.HomeComponent),
+    path: '', 
+    component: HomeComponent,
     canActivate: [authGuard]
   },
   { 
-    path: 'meter-reading',
-    loadComponent: () => import('./components/meter-reading/meter-reading.component').then(m => m.MeterReadingComponent),
+    path: 'meter-reading', 
+    component: MeterReadingComponent,
     canActivate: [authGuard]
   },
   { 
-    path: 'meter-reading/:id',
-    loadComponent: () => import('./components/meter-reading/meter-reading.component').then(m => m.MeterReadingComponent),
+    path: 'meter-reading/:id', 
+    component: MeterReadingComponent,
     canActivate: [authGuard] 
   },
   { 
-    path: 'reading-list',
-    loadComponent: () => import('./components/reading-list/reading-list.component').then(m => m.ReadingListComponent),
+    path: 'reading-list', 
+    component: ReadingListComponent,
     canActivate: [authGuard] 
   },
   { 
-    path: 'statistics',
-    loadComponent: () => import('./components/statistics/statistics.component').then(m => m.StatisticsComponent),
+    path: 'statistics', 
+    component: StatisticsComponent,
     canActivate: [authGuard]
-  },  
-  { 
-    path: 'profile',
-    loadComponent: () => import('./components/profile/profile.component').then(m => m.ProfileComponent),
+  },  { 
+    path: 'profile', 
+    component: ProfileComponent,
     canActivate: [authGuard]
   },
   { 
-    path: 'settings',
-    loadComponent: () => import('./components/settings/settings.component').then(m => m.SettingsComponent),
+    path: 'settings', 
+    component: SettingsComponent,
     canActivate: [authGuard]
   },
   
-  { 
-    path: 'login',
-    loadComponent: () => import('./components/auth/login/login.component').then(m => m.LoginComponent)
-  },
-  { 
-    path: 'register',
-    loadComponent: () => import('./components/auth/register/register.component').then(m => m.RegisterComponent)
-  },
+  
+  { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
+  
   
   { path: '**', redirectTo: 'login' }
 ];
